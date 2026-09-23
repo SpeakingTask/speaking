@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Speaking Task</title>
 <script>
-  const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyY150nw285D8zjBF3_o6rP8BKAHZ3zMPlIZLGi4SnvKD48OvgSi4tWOkrAyuX_TU_nng/exec";
+  const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw1og4b_6oH6PzUrIUBNIuBZYkmdn4CYy4akdseGePVUOfuKnySgOctOyH3HVscWfIldw/exec";
   const AUDIO_BITRATE = 32000;
 </script>
 <style>
@@ -299,51 +299,3 @@
 
   function finishRecording() {
     stopStream();
-    state.duration = (Date.now() - state.recStart) / 1000;
-    state.blob = new Blob(state.chunks, { type: state.recorder.mimeType || state.mime || 'audio/webm' });
-    state.attempt++; state.subId = null;
-    $('player').src = URL.createObjectURL(state.blob);
-    const left = state.task.retakes - (state.attempt - 1);
-    $('reviewInfo').textContent = `Length ${fmt(Math.floor(state.duration))}. ` + (left > 0 ? `You can record again ${left} more time${left > 1 ? 's' : ''}.` : 'This is your final recording.');
-    show($('retakeBtn'), left > 0);
-    panel('review');
-  }
-  $('retakeBtn').onclick = async () => {
-    $('player').pause();
-    try { await getMic(); } catch { panel('ready'); $('micErr').textContent = 'Microphone access was blocked.'; show($('micErr')); return; }
-    startMeter(); runPrep();
-  };
-
-  $('submitBtn').onclick = submit; $('retryBtn').onclick = submit;
-  async function submit() {
-    $('player').pause(); panel('sending');
-    if (!state.subId) state.subId = Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
-    const payload = { taskId: state.task.id, studentId: store.get('sid'), name: store.get('sname'), mimeType: state.blob.type, durationSec: state.duration, attempt: state.attempt, submissionId: state.subId, audioBase64: await blobToBase64(state.blob) };
-    try {
-      let sendError = null;
-      try {
-        await fetch(SCRIPT_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(payload) });
-      } catch (e) { sendError = e; }
-      let ok = false;
-      for (let i = 0; i < 6; i++) {
-        try { const c = await askGoogle({ action: 'check', id: state.subId }); if (c.ok && c.found) { ok = true; break; } } catch (e) {}
-        await sleep(2000);
-      }
-      if (!ok) throw new Error(sendError ? 'Could not reach the server.' : 'The server did not confirm the recording.');
-      $('doneInfo').textContent = `Task ${state.task.id} · ${new Date().toLocaleString()}`;
-      panel('done');
-    } catch (e) {
-      $('failMsg').textContent = 'Sending failed: ' + e.message;
-      const ext = state.blob.type.includes('mp4') ? 'm4a' : state.blob.type.includes('ogg') ? 'ogg' : 'webm';
-      $('saveCopy').href = URL.createObjectURL(state.blob);
-      $('saveCopy').download = `${state.task.id}_${store.get('sid')}.${ext}`;
-      panel('failed');
-    }
-  }
-  window.addEventListener('beforeunload', e => {
-    if (!$('running').classList.contains('hidden') || !$('review').classList.contains('hidden') || !$('sending').classList.contains('hidden')) { e.preventDefault(); e.returnValue = ''; }
-  });
-})();
-</script>
-</body>
-</html>

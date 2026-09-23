@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Speaking Task</title>
+<script>
+  const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyY150nw285D8zjBF3_o6rP8BKAHZ3zMPlIZLGi4SnvKD48OvgSi4tWOkrAyuX_TU_nng/exec";
+  const AUDIO_BITRATE = 32000;
+</script>
+<style>
+  :root {
+    --bg: #f6f7f9; --surface: #ffffff; --text: #1b1f24; --muted: #5d6671;
+    --border: #dde1e6; --accent: #2457c5; --accent-text: #ffffff;
+    --rec: #d0342c; --ok: #1f7a4d; --warn-bg: #fff4d6; --warn-text: #6b4e00;
+    --shadow: 0 1px 3px rgba(0,0,0,.06), 0 6px 20px rgba(0,0,0,.05);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #121417; --surface: #1c1f24; --text: #e8eaed; --muted: #9aa3ad;
+      --border: #30353c; --accent: #6f9bff; --accent-text: #0d1322;
+      --rec: #ff6b61; --ok: #4cc38a; --warn-bg: #3a3014; --warn-text: #f3d98b;
+      --shadow: none;
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body { background: var(--bg); color: var(--text); font: 16px/1.55 system-ui, -apple-system, "Segoe UI", "Hiragino Sans", "Noto Sans JP", sans-serif; min-height: 100vh; }
+  main { max-width: 720px; margin: 0 auto; padding: 24px 16px 48px; }
+  h1 { font-size: 1.5rem; margin: 0 0 4px; line-height: 1.3; }
+  h2 { font-size: 1.15rem; margin: 0 0 12px; }
+  p { margin: 0 0 12px; }
+  .muted { color: var(--muted); }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 20px; box-shadow: var(--shadow); margin-top: 16px; }
+  label { display: block; font-weight: 600; margin: 12px 0 6px; }
+  input[type=text] { width: 100%; padding: 12px 14px; font: inherit; color: var(--text); background: var(--bg); border: 1px solid var(--border); border-radius: 10px; }
+  input[type=text]:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; font: inherit; font-weight: 600; padding: 12px 22px; border-radius: 999px; border: 1px solid transparent; cursor: pointer; min-height: 48px; background: var(--accent); color: var(--accent-text); text-decoration: none; }
+  .btn.secondary { background: transparent; color: var(--text); border-color: var(--border); }
+  .btn.danger { background: var(--rec); color: #fff; }
+  .row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 18px; }
+  .tasks { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
+  .tasks button { width: 100%; text-align: left; font: inherit; color: var(--text); cursor: pointer; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; }
+  .tasks button:hover { border-color: var(--accent); }
+  .tasks .meta { color: var(--muted); font-size: .9rem; }
+  .prompt { font-size: 1.12rem; white-space: pre-wrap; }
+  .task-img { width: 100%; max-height: 420px; object-fit: contain; border-radius: 10px; background: var(--bg); margin-top: 8px; display: block; }
+  .phase { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+  .phase-label { font-weight: 700; font-size: 1.05rem; }
+  .phase-label.rec { color: var(--rec); }
+  .dot { width: 12px; height: 12px; border-radius: 50%; background: var(--rec); animation: pulse 1s infinite; display: inline-block; margin-right: 6px; }
+  @keyframes pulse { 50% { opacity: .25; } }
+  .clock { font-variant-numeric: tabular-nums; font-size: 2.4rem; font-weight: 700; margin-left: auto; }
+  .bar { height: 8px; background: var(--bg); border-radius: 99px; overflow: hidden; margin-top: 12px; border: 1px solid var(--border); }
+  .bar > i { display: block; height: 100%; width: 0; background: var(--accent); transition: width .25s linear; }
+  .bar.rec > i { background: var(--rec); }
+  .meter { height: 6px; background: var(--bg); border-radius: 99px; overflow: hidden; margin-top: 10px; }
+  .meter > i { display: block; height: 100%; width: 0; background: var(--ok); }
+  audio { width: 100%; margin-top: 8px; }
+  .ok { color: var(--ok); font-weight: 700; }
+  .err { color: var(--rec); }
+  .spinner { width: 20px; height: 20px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin .8s linear infinite; display: inline-block; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .hidden { display: none !important; }
+  .who { font-size: .9rem; color: var(--muted); }
+  @media (max-width: 480px) { .clock { font-size: 2rem; } .btn { width: 100%; } }
+</style>
+</head>
+<body>
+<main>
+  <h1>Speaking Task</h1>
+  <p class="muted">Read the task, prepare, then record your answer.</p>
+
+  <section id="stepWho" class="card">
+    <h2>Your details</h2>
+    <label for="sid">Student ID</label>
+    <input id="sid" type="text" autocomplete="off">
+    <label for="sname">Name</label>
+    <input id="sname" type="text" autocomplete="name">
+    <div class="row"><button class="btn" id="whoNext">Continue</button></div>
+    <p id="whoErr" class="err hidden" style="margin-top:12px"></p>
+  </section>
+
+  <section id="stepList" class="card hidden">
+    <h2>Choose a task</h2>
+    <p id="listLoading" class="muted"><span class="spinner"></span>&nbsp; Loading tasks…</p>
+    <p id="listErr" class="err hidden"></p>
+    <ul id="taskList" class="tasks"></ul>
+  </section>
+
+  <section id="stepTask" class="hidden">
+    <div class="card">
+      <p class="who" id="whoLine"></p>
+      <h2 id="tTitle"></h2>
+      <p class="prompt" id="tPrompt"></p>
+      <img id="tImg" class="task-img hidden" alt="Task picture">
+    </div>
+    <div class="card">
+      <div id="ready">
+        <p id="readyInfo"></p>
+        <p class="muted" style="font-size:.92rem">Your browser will ask to use the microphone. Please allow it. Recording starts automatically when preparation time ends.</p>
+        <div class="row"><button class="btn" id="startBtn">Start preparation</button>
+          <button class="btn secondary" id="backBtn">Back to task list</button></div>
+        <p id="micErr" class="err hidden" style="margin-top:12px"></p>
+      </div>
+      <div id="running" class="hidden">
+        <div class="phase"><span class="phase-label" id="phaseLabel"></span><span class="clock" id="clock">0:00</span></div>
+        <div class="bar" id="bar"><i id="barFill"></i></div>
+        <div class="meter"><i id="meterFill"></i></div>
+        <div class="row">
+          <button class="btn secondary" id="skipPrepBtn">Start recording now</button>
+          <button class="btn danger hidden" id="stopBtn">Finish recording</button>
+        </div>
+      </div>
+      <div id="review" class="hidden">
+        <h2>Listen to your recording</h2>
+        <audio id="player" controls></audio>
+        <p class="muted" id="reviewInfo" style="margin-top:10px"></p>
+        <div class="row">
+          <button class="btn" id="submitBtn">Submit</button>
+          <button class="btn secondary" id="retakeBtn">Record again</button>
+        </div>
+      </div>
+      <div id="sending" class="hidden">
+        <p><span class="spinner"></span>&nbsp; Sending your recording… please keep this page open.</p>
+      </div>
+      <div id="done" class="hidden">
+        <p class="ok">✓ Submitted. Thank you!</p>
+        <p class="muted" id="doneInfo"></p>
+        <div class="row"><button class="btn secondary" id="againBtn">Back to task list</button></div>
+      </div>
+      <div id="failed" class="hidden">
+        <p class="err" id="failMsg"></p>
+        <p class="muted">Your recording is still here. Try again, or save a copy and give it to your teacher.</p>
+        <div class="row">
+          <button class="btn" id="retryBtn">Try again</button>
+          <a class="btn secondary" id="saveCopy" download>Save a copy</a>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const show = (el, on = true) => el.classList.toggle('hidden', !on);
+  const state = { tasks: [], task: null, attempt: 0, blob: null, mime: '', duration: 0, stream: null, recorder: null, chunks: [], timer: null, audioCtx: null, raf: 0 };
+  const fmt = s => { s = Math.max(0, Math.ceil(s)); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); };
+  const store = {
+    get(k) { try { return localStorage.getItem(k) || ''; } catch { return ''; } },
+    set(k, v) { try { localStorage.setItem(k, v); } catch {} }
+  };
+  function pickMime() {
+    const list = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4', 'audio/ogg;codecs=opus'];
+    if (!window.MediaRecorder) return '';
+    return list.find(t => MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(t)) || '';
+  }
+  function beep(freq = 880, ms = 180) {
+    try {
+      const ctx = state.audioCtx || (state.audioCtx = new (window.AudioContext || window.webkitAudioContext)());
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.frequency.value = freq; g.gain.value = 0.15;
+      o.connect(g).connect(ctx.destination); o.start(); o.stop(ctx.currentTime + ms / 1000);
+    } catch {}
+  }
+  function blobToBase64(blob) {
+    return new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result).split(',')[1] || ''); r.onerror = rej; r.readAsDataURL(blob); });
+  }
+
+  $('sid').value = store.get('sid'); $('sname').value = store.get('sname');
+  $('whoNext').onclick = () => {
+    const id = $('sid').value.trim(), nm = $('sname').value.trim();
+    if (!id || !nm) { $('whoErr').textContent = 'Please enter your student ID and name.'; show($('whoErr')); return; }
+    show($('whoErr'), false); store.set('sid', id); store.set('sname', nm);
+    show($('stepWho'), false); loadTasks();
+  };
+
+  async function loadTasks() {
+    show($('stepList')); show($('listLoading')); show($('listErr'), false); $('taskList').innerHTML = '';
+    try {
+      const r = await fetch(SCRIPT_URL, { method: 'GET' });
+      const data = await r.json();
+      if (!data.ok) throw new Error(data.error || 'Could not load tasks.');
+      state.tasks = data.tasks;
+    } catch (e) {
+      show($('listLoading'), false);
+      $('listErr').textContent = 'Could not load tasks. Check your connection and reload the page. (' + e.message + ')';
+      show($('listErr')); return;
+    }
+    show($('listLoading'), false);
+    const wanted = new URLSearchParams(location.search).get('task');
+    const direct = wanted && state.tasks.find(t => t.id.toLowerCase() === wanted.toLowerCase());
+    if (direct) { openTask(direct); return; }
+    if (!state.tasks.length) { $('listErr').textContent = 'There are no open tasks right now.'; show($('listErr')); return; }
+    for (const t of state.tasks) {
+      const li = document.createElement('li'), b = document.createElement('button');
+      const title = document.createElement('div'); title.style.fontWeight = '600'; title.textContent = t.title || t.id;
+      const meta = document.createElement('div'); meta.className = 'meta';
+      meta.textContent = `Preparation ${fmt(t.prepSeconds)} · Speaking ${fmt(t.recordSeconds)}`;
+      b.append(title, meta); b.onclick = () => openTask(t); li.append(b); $('taskList').append(li);
+    }
+  }
+
+  function openTask(t) {
+    state.task = t; state.attempt = 0; state.blob = null;
+    show($('stepList'), false); show($('stepTask'));
+    $('whoLine').textContent = `${store.get('sname')} · ${store.get('sid')} · Task ${t.id}`;
+    $('tTitle').textContent = t.title || t.id;
+    $('tPrompt').textContent = t.prompt;
+    if (t.image) { $('tImg').src = t.image; show($('tImg')); } else { $('tImg').removeAttribute('src'); show($('tImg'), false); }
+    $('readyInfo').textContent = `You will have ${fmt(t.prepSeconds)} to prepare and up to ${fmt(t.recordSeconds)} to speak.` +
+      (t.retakes > 0 ? ` You may record again ${t.retakes} time${t.retakes > 1 ? 's' : ''}.` : ' You can record only once.');
+    panel('ready'); show($('micErr'), false); window.scrollTo({ top: 0 });
+  }
+  function panel(name) { ['ready', 'running', 'review', 'sending', 'done', 'failed'].forEach(p => show($(p), p === name)); }
+  $('backBtn').onclick = () => { show($('stepTask'), false); loadTasks(); };
+  $('againBtn').onclick = () => { show($('stepTask'), false); loadTasks(); };
+
+  async function getMic() {
+    state.stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } });
+  }
+  $('startBtn').onclick = async () => {
+    state.mime = pickMime();
+    if (!window.MediaRecorder) { $('micErr').textContent = 'This browser cannot record audio. Please use a recent Chrome, Edge, Firefox or Safari.'; show($('micErr')); return; }
+    try { await getMic(); } catch (e) { $('micErr').textContent = 'Microphone access was blocked. Allow the microphone for this page and try again.'; show($('micErr')); return; }
+    startMeter(); runPrep();
+  };
+
+  function startMeter() {
+    try {
+      const ctx = state.audioCtx || (state.audioCtx = new (window.AudioContext || window.webkitAudioContext)());
+      ctx.resume && ctx.resume();
+      const src = ctx.createMediaStreamSource(state.stream), an = ctx.createAnalyser();
+      an.fftSize = 512; src.connect(an);
+      const buf = new Uint8Array(an.fftSize);
+      const loop = () => {
+        an.getByteTimeDomainData(buf);
+        let peak = 0; for (const v of buf) peak = Math.max(peak, Math.abs(v - 128));
+        $('meterFill').style.width = Math.min(100, peak / 64 * 100) + '%';
+        state.raf = requestAnimationFrame(loop);
+      };
+      loop();
+    } catch {}
+  }
+  function stopStream() {
+    cancelAnimationFrame(state.raf);
+    if (state.stream) state.stream.getTracks().forEach(t => t.stop());
+    state.stream = null;
+  }
+  function countdown(seconds, onTick, onEnd) {
+    clearInterval(state.timer);
+    const end = Date.now() + seconds * 1000;
+    const tick = () => { const left = (end - Date.now()) / 1000; onTick(left); if (left <= 0) { clearInterval(state.timer); onEnd(); } };
+    tick(); state.timer = setInterval(tick, 200);
+  }
+  function runPrep() {
+    const t = state.task; panel('running');
+    $('phaseLabel').className = 'phase-label'; $('phaseLabel').textContent = 'Preparation time';
+    $('bar').classList.remove('rec'); show($('skipPrepBtn')); show($('stopBtn'), false);
+    if (t.prepSeconds <= 0) { startRecording(); return; }
+    countdown(t.prepSeconds, left => { $('clock').textContent = fmt(left); $('barFill').style.width = (100 - left / t.prepSeconds * 100) + '%'; }, startRecording);
+  }
+  $('skipPrepBtn').onclick = () => { clearInterval(state.timer); startRecording(); };
+
+  function startRecording() {
+    const t = state.task;
+    clearInterval(state.timer);
+    state.chunks = [];
+    const opts = { audioBitsPerSecond: AUDIO_BITRATE }; if (state.mime) opts.mimeType = state.mime;
+    try { state.recorder = new MediaRecorder(state.stream, opts); } catch { state.recorder = new MediaRecorder(state.stream); }
+    state.recorder.ondataavailable = e => { if (e.data && e.data.size) state.chunks.push(e.data); };
+    state.recorder.onstop = finishRecording;
+    beep(); state.recorder.start(1000); state.recStart = Date.now();
+    $('phaseLabel').className = 'phase-label rec';
+    $('phaseLabel').innerHTML = '<span class="dot"></span>Recording';
+    $('bar').classList.add('rec'); $('barFill').style.width = '0%';
+    show($('skipPrepBtn'), false); show($('stopBtn'));
+    countdown(t.recordSeconds, left => { $('clock').textContent = fmt(left); $('barFill').style.width = (100 - left / t.recordSeconds * 100) + '%'; }, stopRecording);
+  }
+  function stopRecording() {
+    clearInterval(state.timer);
+    if (state.recorder && state.recorder.state !== 'inactive') { beep(600); state.recorder.stop(); }
+  }
+  $('stopBtn').onclick = stopRecording;
+
+  function finishRecording() {
+    stopStream();
+    state.duration = (Date.now() - state.recStart) / 1000;
+    state.blob = new Blob(state.chunks, { type: state.recorder.mimeType || state.mime || 'audio/webm' });
+    state.attempt++;
+    $('player').src = URL.createObjectURL(state.blob);
+    const left = state.task.retakes - (state.attempt - 1);
+    $('reviewInfo').textContent = `Length ${fmt(Math.floor(state.duration))}. ` + (left > 0 ? `You can record again ${left} more time${left > 1 ? 's' : ''}.` : 'This is your final recording.');
+    show($('retakeBtn'), left > 0);
+    panel('review');
+  }
+  $('retakeBtn').onclick = async () => {
+    $('player').pause();
+    try { await getMic(); } catch { panel('ready'); $('micErr').textContent = 'Microphone access was blocked.'; show($('micErr')); return; }
+    startMeter(); runPrep();
+  };
+
+  $('submitBtn').onclick = submit; $('retryBtn').onclick = submit;
+  async function submit() {
+    $('player').pause(); panel('sending');
+    const payload = { taskId: state.task.id, studentId: store.get('sid'), name: store.get('sname'), mimeType: state.blob.type, durationSec: state.duration, attempt: state.attempt, audioBase64: await blobToBase64(state.blob) };
+    try {
+      const r = await fetch(SCRIPT_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(payload) });
+      const data = await r.json();
+      if (!data.ok) throw new Error(data.error || 'The server did not accept the recording.');
+      $('doneInfo').textContent = `Task ${state.task.id} · ${new Date().toLocaleString()}`;
+      panel('done');
+    } catch (e) {
+      $('failMsg').textContent = 'Sending failed: ' + e.message;
+      const ext = state.blob.type.includes('mp4') ? 'm4a' : state.blob.type.includes('ogg') ? 'ogg' : 'webm';
+      $('saveCopy').href = URL.createObjectURL(state.blob);
+      $('saveCopy').download = `${state.task.id}_${store.get('sid')}.${ext}`;
+      panel('failed');
+    }
+  }
+  window.addEventListener('beforeunload', e => {
+    if (!$('running').classList.contains('hidden') || !$('review').classList.contains('hidden') || !$('sending').classList.contains('hidden')) { e.preventDefault(); e.returnValue = ''; }
+  });
+})();
+</script>
+</body>
+</html>
